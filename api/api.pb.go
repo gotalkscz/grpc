@@ -110,17 +110,18 @@ func init() {
 func init() { proto.RegisterFile("api/api.proto", fileDescriptor_1b40cafcd4234784) }
 
 var fileDescriptor_1b40cafcd4234784 = []byte{
-	// 152 bytes of a gzipped FileDescriptorProto
+	// 168 bytes of a gzipped FileDescriptorProto
 	0x1f, 0x8b, 0x08, 0x00, 0x00, 0x00, 0x00, 0x00, 0x02, 0xff, 0xe2, 0xe2, 0x4d, 0x2c, 0xc8, 0xd4,
 	0x4f, 0x2c, 0xc8, 0xd4, 0x2b, 0x28, 0xca, 0x2f, 0xc9, 0x17, 0x62, 0x4e, 0x2c, 0xc8, 0x54, 0x52,
 	0xe5, 0x62, 0x0f, 0x4a, 0x2d, 0x2c, 0x4d, 0x2d, 0x2e, 0x11, 0x92, 0xe2, 0xe2, 0x00, 0x33, 0x32,
 	0xf3, 0xf3, 0x24, 0x18, 0x15, 0x18, 0x35, 0x38, 0x83, 0xe0, 0x7c, 0x25, 0x25, 0x2e, 0x8e, 0xa0,
 	0xd4, 0xe2, 0x82, 0xfc, 0xbc, 0xe2, 0x54, 0x21, 0x31, 0x2e, 0xb6, 0xc4, 0xbc, 0xe2, 0xf2, 0xd4,
-	0x22, 0xa8, 0x2a, 0x28, 0xcf, 0x48, 0x87, 0x8b, 0xcd, 0x25, 0x33, 0x31, 0x27, 0x3f, 0x5d, 0x48,
+	0x22, 0xa8, 0x2a, 0x28, 0xcf, 0x28, 0x82, 0x8b, 0xcd, 0x25, 0x33, 0x31, 0x27, 0x3f, 0x5d, 0x48,
 	0x89, 0x8b, 0xd9, 0xb1, 0x38, 0x5b, 0x88, 0x47, 0x0f, 0x64, 0x19, 0xd4, 0x78, 0x29, 0x5e, 0x28,
-	0x0f, 0x62, 0x8a, 0x93, 0x50, 0x94, 0x40, 0x7a, 0x51, 0x41, 0x72, 0x48, 0x6a, 0x71, 0x09, 0xc8,
-	0x4d, 0xd6, 0x89, 0x05, 0x99, 0x49, 0x6c, 0x60, 0x87, 0x19, 0x03, 0x02, 0x00, 0x00, 0xff, 0xff,
-	0x83, 0x34, 0x1e, 0xf4, 0xa9, 0x00, 0x00, 0x00,
+	0x0f, 0x6a, 0x8a, 0x16, 0x17, 0xa7, 0x6f, 0x7e, 0x5e, 0x7e, 0x4e, 0x7e, 0x7a, 0x69, 0x2a, 0x5e,
+	0x95, 0x06, 0x8c, 0x4e, 0x42, 0x51, 0x02, 0xe9, 0x45, 0x05, 0xc9, 0x21, 0xa9, 0xc5, 0x25, 0x20,
+	0xf7, 0x5b, 0x27, 0x16, 0x64, 0x26, 0xb1, 0x81, 0x3d, 0x61, 0x0c, 0x08, 0x00, 0x00, 0xff, 0xff,
+	0x58, 0x72, 0x9e, 0x98, 0xd5, 0x00, 0x00, 0x00,
 }
 
 // Reference imports to suppress errors if they are not otherwise used.
@@ -136,6 +137,7 @@ const _ = grpc.SupportPackageIsVersion4
 // For semantics around ctx use and closing/ending streaming RPCs, please refer to https://godoc.org/google.golang.org/grpc#ClientConn.NewStream.
 type DialogClient interface {
 	Ask(ctx context.Context, in *Request, opts ...grpc.CallOption) (*Response, error)
+	Monologue(ctx context.Context, in *Request, opts ...grpc.CallOption) (Dialog_MonologueClient, error)
 }
 
 type dialogClient struct {
@@ -155,9 +157,42 @@ func (c *dialogClient) Ask(ctx context.Context, in *Request, opts ...grpc.CallOp
 	return out, nil
 }
 
+func (c *dialogClient) Monologue(ctx context.Context, in *Request, opts ...grpc.CallOption) (Dialog_MonologueClient, error) {
+	stream, err := c.cc.NewStream(ctx, &_Dialog_serviceDesc.Streams[0], "/api.Dialog/Monologue", opts...)
+	if err != nil {
+		return nil, err
+	}
+	x := &dialogMonologueClient{stream}
+	if err := x.ClientStream.SendMsg(in); err != nil {
+		return nil, err
+	}
+	if err := x.ClientStream.CloseSend(); err != nil {
+		return nil, err
+	}
+	return x, nil
+}
+
+type Dialog_MonologueClient interface {
+	Recv() (*Response, error)
+	grpc.ClientStream
+}
+
+type dialogMonologueClient struct {
+	grpc.ClientStream
+}
+
+func (x *dialogMonologueClient) Recv() (*Response, error) {
+	m := new(Response)
+	if err := x.ClientStream.RecvMsg(m); err != nil {
+		return nil, err
+	}
+	return m, nil
+}
+
 // DialogServer is the server API for Dialog service.
 type DialogServer interface {
 	Ask(context.Context, *Request) (*Response, error)
+	Monologue(*Request, Dialog_MonologueServer) error
 }
 
 // UnimplementedDialogServer can be embedded to have forward compatible implementations.
@@ -166,6 +201,9 @@ type UnimplementedDialogServer struct {
 
 func (*UnimplementedDialogServer) Ask(ctx context.Context, req *Request) (*Response, error) {
 	return nil, status.Errorf(codes.Unimplemented, "method Ask not implemented")
+}
+func (*UnimplementedDialogServer) Monologue(req *Request, srv Dialog_MonologueServer) error {
+	return status.Errorf(codes.Unimplemented, "method Monologue not implemented")
 }
 
 func RegisterDialogServer(s *grpc.Server, srv DialogServer) {
@@ -190,6 +228,27 @@ func _Dialog_Ask_Handler(srv interface{}, ctx context.Context, dec func(interfac
 	return interceptor(ctx, in, info, handler)
 }
 
+func _Dialog_Monologue_Handler(srv interface{}, stream grpc.ServerStream) error {
+	m := new(Request)
+	if err := stream.RecvMsg(m); err != nil {
+		return err
+	}
+	return srv.(DialogServer).Monologue(m, &dialogMonologueServer{stream})
+}
+
+type Dialog_MonologueServer interface {
+	Send(*Response) error
+	grpc.ServerStream
+}
+
+type dialogMonologueServer struct {
+	grpc.ServerStream
+}
+
+func (x *dialogMonologueServer) Send(m *Response) error {
+	return x.ServerStream.SendMsg(m)
+}
+
 var _Dialog_serviceDesc = grpc.ServiceDesc{
 	ServiceName: "api.Dialog",
 	HandlerType: (*DialogServer)(nil),
@@ -199,6 +258,12 @@ var _Dialog_serviceDesc = grpc.ServiceDesc{
 			Handler:    _Dialog_Ask_Handler,
 		},
 	},
-	Streams:  []grpc.StreamDesc{},
+	Streams: []grpc.StreamDesc{
+		{
+			StreamName:    "Monologue",
+			Handler:       _Dialog_Monologue_Handler,
+			ServerStreams: true,
+		},
+	},
 	Metadata: "api/api.proto",
 }

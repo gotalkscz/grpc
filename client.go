@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"grpcTest/api"
+	"io"
 	"os"
 
 	"google.golang.org/grpc"
@@ -23,12 +24,22 @@ func main() {
 
 	client := api.NewDialogClient(conn)
 
-	response, err := client.Ask(ctx, &api.Request{
+	response, err := client.Monologue(ctx, &api.Request{
 		Question: os.Args[1],
 	})
 
 	if err != nil {
 		panic(err)
 	}
-	fmt.Println(response.GetAnswer())
+
+	for {
+		msg, err := response.Recv()
+		if err != nil {
+			if err == io.EOF {
+				return
+			}
+			panic(err)
+		}
+		fmt.Println(msg.GetAnswer())
+	}
 }

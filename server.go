@@ -4,9 +4,11 @@ import (
 	"context"
 	"fmt"
 	"grpcTest/api"
+	"io"
 	"net"
 	"os"
 	"os/signal"
+	"strconv"
 
 	"google.golang.org/grpc"
 )
@@ -44,6 +46,24 @@ func main() {
 }
 
 type DialogServer struct {
+}
+
+func (DialogServer) Monologue(in *api.Request, server api.Dialog_MonologueServer) error {
+
+	fmt.Println("Q:", in.GetQuestion())
+
+	for i := 0; i < 43; i++ {
+		if err := server.Send(&api.Response{
+			Answer: strconv.Itoa(i),
+		}); err != nil {
+			if err == io.EOF {
+				fmt.Println("hulvat")
+				return nil
+			}
+			return err
+		}
+	}
+	return nil
 }
 
 func (DialogServer) Ask(ctx context.Context, in *api.Request) (*api.Response, error) {
