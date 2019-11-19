@@ -48,13 +48,32 @@ func main() {
 type DialogServer struct {
 }
 
+func (d DialogServer) Dialogue(server api.Dialog_DialogueServer) error {
+
+	for {
+		msg, err := server.Recv()
+		if err != nil {
+			if err == io.EOF {
+				fmt.Println("konec diskuze")
+				return nil
+			}
+			fmt.Println("hulvat")
+			return nil
+		}
+		if err := d.Monologue(msg, server); err != nil {
+			return err
+		}
+	}
+
+}
+
 func (DialogServer) Monologue(in *api.Request, server api.Dialog_MonologueServer) error {
 
 	fmt.Println("Q:", in.GetQuestion())
 
 	for i := 0; i < 43; i++ {
 		if err := server.Send(&api.Response{
-			Answer: strconv.Itoa(i),
+			Answer: in.GetQuestion() + ": " + strconv.Itoa(i),
 		}); err != nil {
 			if err == io.EOF {
 				fmt.Println("hulvat")
